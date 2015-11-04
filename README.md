@@ -2,13 +2,13 @@
 
 Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/inherited_class_var`. To experiment with that code, run `bin/console` for an interactive prompt.
 
-[![Code Climate](https://codeclimate.com/github/joel/inherited_class_var.png)](https://codeclimate.com/github/joel/inherited_class_var)
+[![Code Climate](https://codeclimate.com/github/FinalCAD/inherited_class_var.png)](https://codeclimate.com/github/FinalCAD/inherited_class_var)
 
-[![Dependency Status](https://gemnasium.com/joel/inherited_class_var.svg)](https://gemnasium.com/joel/inherited_class_var)
+[![Dependency Status](https://gemnasium.com/FinalCAD/inherited_class_var.svg)](https://gemnasium.com/FinalCAD/inherited_class_var)
 
-[![Build Status](https://travis-ci.org/joel/inherited_class_var.svg?branch=master)](https://travis-ci.org/joel/inherited_class_var) (Travis CI)
+[![Build Status](https://travis-ci.org/FinalCAD/inherited_class_var.svg?branch=master)](https://travis-ci.org/FinalCAD/inherited_class_var) (Travis CI)
 
-[![Coverage Status](https://coveralls.io/repos/joel/inherited_class_var/badge.svg?branch=master&service=github)](https://coveralls.io/github/joel/inherited_class_var?branch=master)
+[![Coverage Status](https://coveralls.io/repos/FinalCAD/inherited_class_var/badge.svg?branch=master&service=github)](https://coveralls.io/github/FinalCAD/inherited_class_var?branch=master)
 
 [![Gem Version](https://badge.fury.io/rb/inherited_class_var.svg)](http://badge.fury.io/rb/inherited_class_var)
 
