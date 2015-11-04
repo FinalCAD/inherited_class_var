@@ -1,7 +1,6 @@
 require 'inherited_class_var/version'
 
 require 'active_support/concern'
-# require 'active_support/core_ext/module/deprecation' # https://github.com/rails/rails/commit/1e62457a6d4307edc026591f8c8a8335d9627768
 require 'active_support/dependencies/autoload'
 require 'active_support/core_ext'
 require 'active_support/json'
@@ -25,6 +24,7 @@ module InheritedClassVar
     protected
 
     # @param variable_name [Symbol] class variable name
+    # @option options [Array] :dependencies array of dependent method names
     def inherited_class_hash(variable_name, options={})
       options = check_and_merge_options(options, dependencies: [])
 
