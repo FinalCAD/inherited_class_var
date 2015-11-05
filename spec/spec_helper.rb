@@ -1,11 +1,5 @@
+Bundler.require(:default, :test)
 require 'inherited_class_var'
-require 'bundler/setup'
-require 'coveralls'
-
-begin
-  require 'pry'
-rescue LoadError
-end
 
 Coveralls.wear!
 
