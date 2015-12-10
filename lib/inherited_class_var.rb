@@ -37,14 +37,16 @@ module InheritedClassVar
       end
 
       hidden_variable_name = hidden_variable_name(variable_name)
+
       define_singleton_method variable_name do
         inherited_class_var(hidden_variable_name, {}, :merge)
       end
+
       define_singleton_method "merge_#{variable_name}" do |merge_value|
         value = instance_variable_get(hidden_variable_name) || instance_variable_set(hidden_variable_name, {})
 
         deep_clear_class_cache(hidden_variable_name)
-        options[:dependencies].each {|dependency_name| deep_clear_class_cache(hidden_variable_name(dependency_name)) }
+        options[:dependencies].each { |dependency_name| deep_clear_class_cache(hidden_variable_name(dependency_name)) }
 
         value.merge!(merge_value)
       end
@@ -60,7 +62,7 @@ module InheritedClassVar
     # @return [Array<Module>] inherited_ancestors of included_module (including self)
     def inherited_ancestors(included_module=InheritedClassVar)
       included_model_index = ancestors.index(included_module)
-      included_model_index == 0 ? [included_module] : ancestors[0..(included_model_index - 1)]
+      included_model_index == 0 ? [included_module] : (ancestors[0..(included_model_index - 1)] - [InvalidOptions])
     end
 
     # @param accessor_method_name [Symbol] method to access the inherited_custom_class
@@ -90,14 +92,15 @@ module InheritedClassVar
     # @return [Object] a class variable merged across ancestors until inherited_class_module
     def inherited_class_var(variable_name, default_value, merge_method)
       class_cache(variable_name) do
-        value = default_value
+        current_value = default_value
 
-        inherited_ancestors.each do |ancestor|
-          ancestor_value = ancestor.instance_variable_get(variable_name)
-          value = ancestor_value.public_send(merge_method, value) if ancestor_value.present?
+        ancestor_values = inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }.compact
+
+        ancestor_values.each do |ancestor_value|
+          current_value = current_value.public_send(merge_method, ancestor_value)
         end
 
-        value
+        current_value
       end
     end
 
