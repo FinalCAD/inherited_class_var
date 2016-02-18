@@ -41,6 +41,32 @@ describe InheritedClassVar do
         expect(Parent.inherited_hash.object_id).to eql Parent.inherited_hash.object_id
       end
 
+      context 'with cache cleared' do
+        before do
+          # NOTE deep_clear_class_cache doesn't work here...
+          [ :@_inherited_hash, :@_inherited_hash_inherited_class_cache ].each do |variable|
+            Parent.instance_variable_set(variable, nil)
+          end
+          # Parent.send(:deep_clear_class_cache, :@_inherited_hash)
+        end
+
+        it 'inherited merge' do
+          Parent.merge_inherited_hash(test1: 'test1')
+          expect(Parent.inherited_hash).to eql(test1: 'test1')
+
+          ClassWithFamily.merge_inherited_hash(test2: 'test2')
+          expect(ClassWithFamily.inherited_hash).to eql(test1: 'test1', test2: 'test2')
+        end
+
+        it 'merge options', skip: true do
+          Parent.merge_inherited_hash(test1: { foo: 'test1' })
+          expect(Parent.inherited_hash[:test1]).to eql({ foo: 'test1' })
+
+          ClassWithFamily.merge_inherited_hash(test1: { bar: 'test2' })
+          expect(ClassWithFamily.inherited_hash[:test1]).to eql({ foo: 'test1', bar: 'test2' })
+        end
+      end
+
       context 'with dependency' do
         it 'recalculates and caches the dependency' do
           expect(Parent.inherited_hash_with_dependencies).to eql({})
@@ -55,10 +81,8 @@ describe InheritedClassVar do
   end
 
   describe '::inherited_ancestors' do
-    subject { ClassWithFamily.send(:inherited_ancestors) }
-
     it 'returns the inherited ancestors' do
-      expect(subject).to eql [ClassWithFamily, Parent, InvalidOptions]
+      expect(ClassWithFamily.send(:inherited_ancestors)).to eql [ClassWithFamily, Parent]
     end
   end
 
@@ -84,10 +108,8 @@ describe InheritedClassVar do
     end
 
     describe '::inherited_class_var' do
-      subject { inherited_class_var }
-
       it 'returns a class variable merged across ancestors until #{described_class}' do
-        expect(subject).to eql %w[Parent ClassWithFamily]
+        expect(inherited_class_var).to eql %w[ClassWithFamily Parent]
       end
 
       it 'caches the result' do
@@ -96,13 +118,11 @@ describe InheritedClassVar do
     end
 
     describe '::clear_class_cache' do
-      subject { ClassWithFamily.clear_class_cache(variable_name) }
-
       it 'clears the cache' do
         value = inherited_class_var
-        expect(value.object_id).to eql inherited_class_var.object_id
-        subject
-        expect(value.object_id).to_not eql inherited_class_var.object_id
+        expect { ClassWithFamily.clear_class_cache(variable_name) }.to change {
+          value.object_id == inherited_class_var.object_id
+        }.from(true).to(false)
       end
     end
 
@@ -115,16 +135,16 @@ describe InheritedClassVar do
 
       it 'clears the cache of self class' do
         value = parent_inherited_class_var
-        expect(value.object_id).to eql parent_inherited_class_var.object_id
-        subject
-        expect(value.object_id).to_not eql parent_inherited_class_var.object_id
+        expect { subject }.to change {
+          value.object_id == parent_inherited_class_var.object_id
+        }.from(true).to(false)
       end
 
       it 'clears the cache of children class' do
         value = inherited_class_var
-        expect(value.object_id).to eql inherited_class_var.object_id
-        subject
-        expect(value.object_id).to_not eql inherited_class_var.object_id
+        expect { subject }.to change {
+          value.object_id == inherited_class_var.object_id
+        }.from(true).to(false)
       end
     end
   end
