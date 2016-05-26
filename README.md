@@ -31,7 +31,58 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+You can follow this example, if you want to create Models with columns information and these informations still available after inheritance
+
+Create a Model module with `inherited_class_var`
+
+```
+require 'inherited_class_var'
+
+module Model
+  extend ActiveSupport::Concern
+
+  included do
+    include InheritedClassVar
+    inherited_class_hash :columns
+  end
+
+  module ClassMethods
+
+    protected
+
+    def column(column_name, options={})
+      merge_columns(column_name.to_sym => options)
+    end
+  end
+end
+```
+
+`merge_columns` it's bring by `inherited_class_var`
+
+```
+class ModelBase
+  include Model
+
+  column :id, type: Integer
+end
+```
+
+Gives
+```
+ModelBase.columns # => {:id=>{:type=>Integer}}
+```
+
+```
+class UserModel < ModelBase
+
+  column :name, type: String
+end
+```
+
+Gives
+```
+UserModel.columns # => {:id=>{:type=>Integer}, :name=>{:type=>String}}
+```
 
 ## Development
 
