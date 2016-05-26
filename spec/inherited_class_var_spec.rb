@@ -9,12 +9,6 @@ class Parent < Grandparent
   include InheritedClassVar
 
   inherited_class_hash :inherited_hash
-
-  inherited_class_hash :inherited_hash_with_dependencies, dependencies: %i[somethings]
-  class << self
-    protected
-    def _somethings; inherited_hash_with_dependencies.to_json end
-  end
 end
 class ClassWithFamily < Parent; end
 
@@ -64,17 +58,6 @@ describe InheritedClassVar do
 
           ClassWithFamily.merge_inherited_hash(test1: { bar: 'test2' })
           expect(ClassWithFamily.inherited_hash[:test1]).to eql({ foo: 'test1', bar: 'test2' })
-        end
-      end
-
-      context 'with dependency' do
-        it 'recalculates and caches the dependency' do
-          expect(Parent.inherited_hash_with_dependencies).to eql({})
-          expect(Parent.somethings).to eql('{}')
-
-          Parent.merge_inherited_hash_with_dependencies(test1: 'test1')
-          expect(Parent.somethings).to eql("{\"test1\":\"test1\"}")
-          expect(Parent.somethings.object_id).to eql Parent.somethings.object_id
         end
       end
     end

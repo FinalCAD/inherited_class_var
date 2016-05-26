@@ -1,18 +1,9 @@
+require 'active_support/all'
+
 require 'inherited_class_var/version'
-
-require 'active_support/concern'
-require 'active_support/dependencies/autoload'
-require 'active_support/core_ext'
-require 'active_support/json'
-
-require 'inherited_class_var/invalid_options'
 
 module InheritedClassVar
   extend ActiveSupport::Concern
-
-  included do
-    include InvalidOptions
-  end
 
   class_methods do
     # Clears the cache for a variable
@@ -25,17 +16,7 @@ module InheritedClassVar
 
     # @param variable_name [Symbol] class variable name
     # @option options [Array] :dependencies array of dependent method names
-    def inherited_class_hash(variable_name, options={})
-      options = check_and_merge_options(options, dependencies: [])
-
-      options[:dependencies].each do |dependency_name|
-        define_singleton_method dependency_name do
-          class_cache(hidden_variable_name(dependency_name)) do
-            send("_#{dependency_name}")
-          end
-        end
-      end
-
+    def inherited_class_hash(variable_name)
       hidden_variable_name = hidden_variable_name(variable_name)
 
       define_singleton_method variable_name do
@@ -44,10 +25,7 @@ module InheritedClassVar
 
       define_singleton_method "merge_#{variable_name}" do |merge_value|
         value = instance_variable_get(hidden_variable_name) || instance_variable_set(hidden_variable_name, {})
-
         deep_clear_class_cache(hidden_variable_name)
-        options[:dependencies].each { |dependency_name| deep_clear_class_cache(hidden_variable_name(dependency_name)) }
-
         value.merge!(merge_value)
       end
     end
@@ -62,7 +40,7 @@ module InheritedClassVar
     # @return [Array<Module>] inherited_ancestors of included_module (including self)
     def inherited_ancestors(included_module=InheritedClassVar)
       included_model_index = ancestors.index(included_module)
-      included_model_index == 0 ? [included_module] : (ancestors[0..(included_model_index - 1)] - [InvalidOptions])
+      included_model_index == 0 ? [included_module] : (ancestors[0..(included_model_index - 1)])
     end
 
     # @param accessor_method_name [Symbol] method to access the inherited_custom_class
