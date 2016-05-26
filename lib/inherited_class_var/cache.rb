@@ -1,3 +1,18 @@
+#
+# Methods to help cache the inherited variable
+#
+# Given:
+# Parent -> Child
+#
+# and Parent.send(:inherited_class_hash, :some_var)
+#
+# Parent.merge_some_var(a: 1)
+# Child.some_var # => { a: 1 }, this requires going up the ancestors (Parent, Grandparent, etc.) and merging, so we cache the result
+# Child.some_var # => { a: 1 }, cached, no calculation
+#
+# Parent.merge_some_var(b: 2) # => this should clear the cache for all descendents
+# Child.some_var # => { a: 1, b: 2 } # => cache was cleared, so recalculate via merging up ancestors
+#
 module InheritedClassVar
   module Cache
     extend ActiveSupport::Concern
