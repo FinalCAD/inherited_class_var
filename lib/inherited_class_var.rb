@@ -1,18 +1,19 @@
 require 'active_support/all'
 
 require 'inherited_class_var/version'
+require 'inherited_class_var/cache'
 
 module InheritedClassVar
   extend ActiveSupport::Concern
 
-  class_methods do
-    # Clears the cache for a variable
-    # @param variable_name [Symbol] variable_name to cache against
-    def clear_class_cache(variable_name)
-      instance_variable_set inherited_class_variable_name(variable_name), nil
-    end
+  include Cache
 
+  class_methods do
     protected
+
+    #
+    # Easy Open API
+    #
 
     # @param variable_name [Symbol] class variable name
     # @option options [Array] :dependencies array of dependent method names
@@ -28,19 +29,6 @@ module InheritedClassVar
         deep_clear_class_cache(hidden_variable_name)
         value.merge!(merge_value)
       end
-    end
-
-    # @param variable_name [Symbol] class variable name based on
-    # @return [Symbol] the hidden variable name for class_cache
-    def hidden_variable_name(variable_name)
-      :"@_#{variable_name}"
-    end
-
-    # @param included_module [Module] module to search for
-    # @return [Array<Module>] inherited_ancestors of included_module (including self)
-    def inherited_ancestors(included_module=InheritedClassVar)
-      included_model_index = ancestors.index(included_module)
-      included_model_index == 0 ? [included_module] : (ancestors[0..(included_model_index - 1)])
     end
 
     # @param accessor_method_name [Symbol] method to access the inherited_custom_class
@@ -66,6 +54,16 @@ module InheritedClassVar
       klass
     end
 
+    #
+    # Helpers to make different types of inherited class variables
+    #
+
+    # @param variable_name [Symbol] class variable name based on
+    # @return [Symbol] the hidden variable name for class variable
+    def hidden_variable_name(variable_name)
+      :"@_#{variable_name}"
+    end
+
     # @param variable_name [Symbol] class variable name (recommend :@_variable_name)
     # @param default_value [Object] default value of the class variable
     # @param merge_method [Symbol] method to merge values of the class variable
@@ -78,28 +76,15 @@ module InheritedClassVar
       end
     end
 
-    # @param variable_name [Symbol] variable_name to cache against
-    # @return [String] the cache variable name for the cache
-    def inherited_class_variable_name(variable_name)
-      :"#{variable_name}_inherited_class_cache"
-    end
+    #
+    # More Helpers
+    #
 
-    # Clears the cache for a variable and the same variable for all it's dependant descendants
-    # @param variable_name [Symbol] variable_name to cache against
-    def deep_clear_class_cache(variable_name)
-      ([self] + descendants).each do |descendant|
-        descendant.try(:clear_class_cache, variable_name)
-      end
-    end
-
-    # Memozies a inherited_class_variable_name
-    # @param variable_name [Symbol] variable_name to cache against
-    def class_cache(variable_name)
-      #
-      # equal to: (has @)inherited_class_variable_name ||= yield
-      #
-      cache_variable_name = inherited_class_variable_name(variable_name)
-      instance_variable_get(cache_variable_name) || instance_variable_set(cache_variable_name, yield)
+    # @param included_module [Module] module to search for
+    # @return [Array<Module>] inherited_ancestors of included_module (including self)
+    def inherited_ancestors(included_module=InheritedClassVar)
+      included_model_index = ancestors.index(included_module)
+      included_model_index == 0 ? [included_module] : (ancestors[0..(included_model_index - 1)])
     end
   end
 end
