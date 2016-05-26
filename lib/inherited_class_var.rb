@@ -23,7 +23,7 @@ module InheritedClassVar
         inherited_class_var(hidden_variable_name, {}, :merge)
       end
 
-      define_singleton_method "merge_#{variable_name}" do |merge_value|
+      define_singleton_method :"merge_#{variable_name}" do |merge_value|
         value = instance_variable_get(hidden_variable_name) || instance_variable_set(hidden_variable_name, {})
         deep_clear_class_cache(hidden_variable_name)
         value.merge!(merge_value)
@@ -33,7 +33,7 @@ module InheritedClassVar
     # @param variable_name [Symbol] class variable name based on
     # @return [Symbol] the hidden variable name for class_cache
     def hidden_variable_name(variable_name)
-      "@_#{variable_name}".to_sym
+      :"@_#{variable_name}"
     end
 
     # @param included_module [Module] module to search for
@@ -48,6 +48,8 @@ module InheritedClassVar
     # @return [Class] a custom class with the inheritance following self. for example:
     #
     # grandparent -> parent -> self
+    #
+    # we want self::inherited_custom_class to inherit from inherited_custom_class of all the ancestors
     #
     # grandparent has inherited_custom_class, but parent, doesn't.
     #
@@ -70,22 +72,16 @@ module InheritedClassVar
     # @return [Object] a class variable merged across ancestors until inherited_class_module
     def inherited_class_var(variable_name, default_value, merge_method)
       class_cache(variable_name) do
-        current_value = default_value
-
-        ancestor_values = inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }.compact
-
-        ancestor_values.each do |ancestor_value|
-          current_value = current_value.public_send(merge_method, ancestor_value)
-        end
-
-        current_value
+        inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }
+          .compact
+          .reduce(default_value, merge_method)
       end
     end
 
     # @param variable_name [Symbol] variable_name to cache against
     # @return [String] the cache variable name for the cache
     def inherited_class_variable_name(variable_name)
-      "#{variable_name}_inherited_class_cache"
+      :"#{variable_name}_inherited_class_cache"
     end
 
     # Clears the cache for a variable and the same variable for all it's dependant descendants
