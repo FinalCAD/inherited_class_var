@@ -9,12 +9,6 @@ class Parent < Grandparent
   include InheritedClassVar
 
   inherited_class_hash :inherited_hash
-
-  inherited_class_hash :inherited_hash_with_dependencies, dependencies: %i[somethings]
-  class << self
-    protected
-    def _somethings; inherited_hash_with_dependencies.to_json end
-  end
 end
 class ClassWithFamily < Parent; end
 
@@ -39,43 +33,6 @@ describe InheritedClassVar do
         Parent.merge_inherited_hash(test2: 'test2')
         expect(Parent.inherited_hash).to eql(test1: 'test1', test2: 'test2')
         expect(Parent.inherited_hash.object_id).to eql Parent.inherited_hash.object_id
-      end
-
-      context 'with cache cleared' do
-        before do
-          # NOTE deep_clear_class_cache doesn't work here...
-          [ :@_inherited_hash, :@_inherited_hash_inherited_class_cache ].each do |variable|
-            Parent.instance_variable_set(variable, nil)
-          end
-          # Parent.send(:deep_clear_class_cache, :@_inherited_hash)
-        end
-
-        it 'inherited merge' do
-          Parent.merge_inherited_hash(test1: 'test1')
-          expect(Parent.inherited_hash).to eql(test1: 'test1')
-
-          ClassWithFamily.merge_inherited_hash(test2: 'test2')
-          expect(ClassWithFamily.inherited_hash).to eql(test1: 'test1', test2: 'test2')
-        end
-
-        it 'merge options', skip: true do
-          Parent.merge_inherited_hash(test1: { foo: 'test1' })
-          expect(Parent.inherited_hash[:test1]).to eql({ foo: 'test1' })
-
-          ClassWithFamily.merge_inherited_hash(test1: { bar: 'test2' })
-          expect(ClassWithFamily.inherited_hash[:test1]).to eql({ foo: 'test1', bar: 'test2' })
-        end
-      end
-
-      context 'with dependency' do
-        it 'recalculates and caches the dependency' do
-          expect(Parent.inherited_hash_with_dependencies).to eql({})
-          expect(Parent.somethings).to eql('{}')
-
-          Parent.merge_inherited_hash_with_dependencies(test1: 'test1')
-          expect(Parent.somethings).to eql("{\"test1\":\"test1\"}")
-          expect(Parent.somethings.object_id).to eql Parent.somethings.object_id
-        end
       end
     end
   end

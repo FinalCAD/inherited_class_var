@@ -1,68 +1,34 @@
+require 'active_support/all'
+
 require 'inherited_class_var/version'
-
-require 'active_support/concern'
-require 'active_support/dependencies/autoload'
-require 'active_support/core_ext'
-require 'active_support/json'
-
-require 'inherited_class_var/invalid_options'
+require 'inherited_class_var/cache'
 
 module InheritedClassVar
   extend ActiveSupport::Concern
 
-  included do
-    include InvalidOptions
-  end
+  include Cache
 
   class_methods do
-    # Clears the cache for a variable
-    # @param variable_name [Symbol] variable_name to cache against
-    def clear_class_cache(variable_name)
-      instance_variable_set inherited_class_variable_name(variable_name), nil
-    end
-
     protected
+
+    #
+    # Easy Open API
+    #
 
     # @param variable_name [Symbol] class variable name
     # @option options [Array] :dependencies array of dependent method names
-    def inherited_class_hash(variable_name, options={})
-      options = check_and_merge_options(options, dependencies: [])
-
-      options[:dependencies].each do |dependency_name|
-        define_singleton_method dependency_name do
-          class_cache(hidden_variable_name(dependency_name)) do
-            send("_#{dependency_name}")
-          end
-        end
-      end
-
+    def inherited_class_hash(variable_name)
       hidden_variable_name = hidden_variable_name(variable_name)
 
       define_singleton_method variable_name do
         inherited_class_var(hidden_variable_name, {}, :merge)
       end
 
-      define_singleton_method "merge_#{variable_name}" do |merge_value|
+      define_singleton_method :"merge_#{variable_name}" do |merge_value|
         value = instance_variable_get(hidden_variable_name) || instance_variable_set(hidden_variable_name, {})
-
         deep_clear_class_cache(hidden_variable_name)
-        options[:dependencies].each { |dependency_name| deep_clear_class_cache(hidden_variable_name(dependency_name)) }
-
         value.merge!(merge_value)
       end
-    end
-
-    # @param variable_name [Symbol] class variable name based on
-    # @return [Symbol] the hidden variable name for class_cache
-    def hidden_variable_name(variable_name)
-      "@_#{variable_name}".to_sym
-    end
-
-    # @param included_module [Module] module to search for
-    # @return [Array<Module>] inherited_ancestors of included_module (including self)
-    def inherited_ancestors(included_module=InheritedClassVar)
-      included_model_index = ancestors.index(included_module)
-      included_model_index == 0 ? [included_module] : (ancestors[0..(included_model_index - 1)] - [InvalidOptions])
     end
 
     # @param accessor_method_name [Symbol] method to access the inherited_custom_class
@@ -70,6 +36,8 @@ module InheritedClassVar
     # @return [Class] a custom class with the inheritance following self. for example:
     #
     # grandparent -> parent -> self
+    #
+    # we want self::inherited_custom_class to inherit from inherited_custom_class of all the ancestors
     #
     # grandparent has inherited_custom_class, but parent, doesn't.
     #
@@ -86,46 +54,37 @@ module InheritedClassVar
       klass
     end
 
+    #
+    # Helpers to make different types of inherited class variables
+    #
+
+    # @param variable_name [Symbol] class variable name based on
+    # @return [Symbol] the hidden variable name for class variable
+    def hidden_variable_name(variable_name)
+      :"@_#{variable_name}"
+    end
+
     # @param variable_name [Symbol] class variable name (recommend :@_variable_name)
     # @param default_value [Object] default value of the class variable
     # @param merge_method [Symbol] method to merge values of the class variable
     # @return [Object] a class variable merged across ancestors until inherited_class_module
     def inherited_class_var(variable_name, default_value, merge_method)
       class_cache(variable_name) do
-        current_value = default_value
-
-        ancestor_values = inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }.compact
-
-        ancestor_values.each do |ancestor_value|
-          current_value = current_value.public_send(merge_method, ancestor_value)
-        end
-
-        current_value
+        inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }
+          .compact
+          .reduce(default_value, merge_method)
       end
     end
 
-    # @param variable_name [Symbol] variable_name to cache against
-    # @return [String] the cache variable name for the cache
-    def inherited_class_variable_name(variable_name)
-      "#{variable_name}_inherited_class_cache"
-    end
+    #
+    # More Helpers
+    #
 
-    # Clears the cache for a variable and the same variable for all it's dependant descendants
-    # @param variable_name [Symbol] variable_name to cache against
-    def deep_clear_class_cache(variable_name)
-      ([self] + descendants).each do |descendant|
-        descendant.try(:clear_class_cache, variable_name)
-      end
-    end
-
-    # Memozies a inherited_class_variable_name
-    # @param variable_name [Symbol] variable_name to cache against
-    def class_cache(variable_name)
-      #
-      # equal to: (has @)inherited_class_variable_name ||= yield
-      #
-      cache_variable_name = inherited_class_variable_name(variable_name)
-      instance_variable_get(cache_variable_name) || instance_variable_set(cache_variable_name, yield)
+    # @param included_module [Module] module to search for
+    # @return [Array<Module>] inherited_ancestors of included_module (including self)
+    def inherited_ancestors(included_module=InheritedClassVar)
+      included_model_index = ancestors.index(included_module)
+      included_model_index == 0 ? [included_module] : (ancestors[0..(included_model_index - 1)])
     end
   end
 end
