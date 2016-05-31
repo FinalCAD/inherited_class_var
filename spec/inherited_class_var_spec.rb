@@ -1,52 +1,56 @@
 require 'spec_helper'
 
-class Grandparent; end
 module Mod; end
 
-class Parent < Grandparent
-  include Mod
-  include InheritedClassVar
-
-  inherited_class_hash :inherited_hash
-end
-class Child < Parent; end
-
 describe InheritedClassVar do
+  let(:grandparent_class) { Class.new { def self.name; "grandparent_class" end } }
+  let(:parent_class) do
+    Class.new(grandparent_class) do
+      include Mod
+      include InheritedClassVar
+
+      inherited_class_hash :inherited_hash
+
+      def self.name; "Parent" end
+    end
+  end
+  let(:child_class) { Class.new(parent_class) { def self.name; "Child" end } }
+
   describe '::inherited_class_hash' do
     describe 'getter' do
       it 'calls inherited_class_var' do
-        expect(Parent).to receive(:inherited_class_var).with(:@_inherited_hash, {}, :merge)
-        Parent.inherited_hash
+        expect(parent_class).to receive(:inherited_class_var).with(:@_inherited_hash, {}, :merge)
+        parent_class.inherited_hash
       end
     end
 
     describe "raw getter" do
       it 'calls inherited_class_var' do
-        expect(Parent).to receive(:class_var).with(:@_inherited_hash, {}).and_call_original
-        Parent.raw_inherited_hash
+        expect(parent_class).to receive(:class_var).with(:@_inherited_hash, {}).and_call_original
+        parent_class.raw_inherited_hash
       end
     end
 
     describe 'merger' do
       it 'continuously merges the new variable value' do
-        expect(Parent.inherited_hash).to eql({})
+        expect(parent_class.inherited_hash).to eql({})
 
-        Parent.merge_inherited_hash(test1: 'test1')
-        expect(Parent.inherited_hash).to eql(test1: 'test1')
-        Parent.merge_inherited_hash(test2: 'test2')
-        expect(Parent.inherited_hash).to eql(test1: 'test1', test2: 'test2')
+        parent_class.merge_inherited_hash(test1: 'test1')
+        expect(parent_class.inherited_hash).to eql(test1: 'test1')
+        parent_class.merge_inherited_hash(test2: 'test2')
+        expect(parent_class.inherited_hash).to eql(test1: 'test1', test2: 'test2')
 
-        expect(Parent.inherited_hash.object_id).to eql Parent.inherited_hash.object_id
-        expect(Child.inherited_hash).to eql(test1: 'test1', test2: 'test2')
+        expect(parent_class.inherited_hash.object_id).to eql parent_class.inherited_hash.object_id
+        expect(child_class.inherited_hash).to eql(test1: 'test1', test2: 'test2')
 
-        expect(Parent.raw_inherited_hash).to eql(test1: 'test1', test2: 'test2')
-        expect(Child.raw_inherited_hash).to eql({})
+        expect(parent_class.raw_inherited_hash).to eql(test1: 'test1', test2: 'test2')
+        expect(child_class.raw_inherited_hash).to eql({})
       end
     end
   end
 
   describe '::inherited_custom_class' do
-    let(:klass) { Parent }
+    let(:klass) { parent_class }
     let(:inherited_base_class) { Class.new { def self.name; "InheritedBaseClass" end } }
     subject { klass.send(:inherited_custom_class, :does_not_exist, inherited_base_class) }
 
@@ -57,25 +61,25 @@ describe InheritedClassVar do
 
   describe '::inherited_ancestors' do
     it 'returns the inherited ancestors' do
-      expect(Child.send(:inherited_ancestors)).to eql [Child, Parent]
+      expect(child_class.send(:inherited_ancestors)).to eql [child_class, parent_class]
     end
   end
 
   context 'with deep_inherited_class_var set' do
     let(:variable_name) { :@inherited_class_var }
-    def inherited_class_var; Child.send(:inherited_class_var, variable_name, [], :+) end
+    def inherited_class_var; child_class.send(:inherited_class_var, variable_name, [], :+) end
 
     before do
-      [Grandparent, Parent, Mod, Child].each { |klass| klass.instance_variable_set(variable_name, [klass.to_s]) }
+      [grandparent_class, parent_class, Mod, child_class].each { |klass| klass.instance_variable_set(variable_name, [klass.name]) }
     end
 
     describe "::class_var" do
       it "returns the class variable" do
-        [Parent, Child].each do |klass|
-          expect(klass.send(:class_var, variable_name, [])).to eql [klass.to_s]
+        [parent_class, child_class].each do |klass|
+          expect(klass.send(:class_var, variable_name, [])).to eql [klass.name]
         end
 
-        [Grandparent, Mod].each do |klass|
+        [grandparent_class, Mod].each do |klass|
           expect { klass.send(:class_var, variable_name, []) }.to raise_error(NoMethodError)
         end
       end
@@ -94,17 +98,17 @@ describe InheritedClassVar do
     describe '::clear_class_cache' do
       it 'clears the cache' do
         value = inherited_class_var
-        expect { Child.clear_class_cache(variable_name) }.to change {
+        expect { child_class.clear_class_cache(variable_name) }.to change {
           value.object_id == inherited_class_var.object_id
         }.from(true).to(false)
       end
     end
 
     describe '::deep_clear_class_cache' do
-      subject { Parent.send(:deep_clear_class_cache, variable_name) }
+      subject { parent_class.send(:deep_clear_class_cache, variable_name) }
 
       def parent_inherited_class_var
-        Parent.send(:inherited_class_var, variable_name, [], :+)
+        parent_class.send(:inherited_class_var, variable_name, [], :+)
       end
 
       it 'clears the cache of self class' do
@@ -114,7 +118,7 @@ describe InheritedClassVar do
         }.from(true).to(false)
       end
 
-      it 'clears the cache of Child class' do
+      it 'clears the cache of child class' do
         value = inherited_class_var
         expect { subject }.to change {
           value.object_id == inherited_class_var.object_id
