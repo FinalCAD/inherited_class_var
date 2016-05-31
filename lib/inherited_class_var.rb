@@ -30,7 +30,7 @@ module InheritedClassVar
 
       define_singleton_method :"merge_#{variable_name}" do |merge_value|
         deep_clear_class_cache(hidden_variable_name)
-        public_send(:"raw_#{variable_name}").merge!(merge_value)
+        public_send(:"raw_#{variable_name}").deep_merge!(merge_value)
       end
     end
 

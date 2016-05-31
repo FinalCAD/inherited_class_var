@@ -49,7 +49,7 @@ describe InheritedClassVar do
         expect(child_class.raw_inherited_hash).to eql({})
       end
 
-      it "does a deep merge" do
+      it "does a deep merge between children" do
         parent_class.merge_inherited_hash(a: { a1: 'a1'})
         child_class.merge_inherited_hash(a: { a2: 'a2'})
 
@@ -58,6 +58,15 @@ describe InheritedClassVar do
 
         expect(parent_class.raw_inherited_hash).to eql(a: { a1: 'a1'})
         expect(child_class.raw_inherited_hash).to eql(a: { a2: 'a2'})
+      end
+
+
+      it "does a deep merge with itself" do
+        parent_class.merge_inherited_hash(a: { a1: 'a1'})
+        parent_class.merge_inherited_hash(a: { a2: 'a2'})
+
+        expect(parent_class.inherited_hash).to eql(a: { a1: 'a1', a2: 'a2'})
+        expect(parent_class.raw_inherited_hash).to eql(a: { a1: 'a1', a2: 'a2'})
       end
     end
   end
