@@ -64,13 +64,19 @@ module InheritedClassVar
       :"@_#{variable_name}"
     end
 
+    # @param variable_name [Symbol] class variable name
+    # @return [Object] a class variable of the specific class without taking into account inheritance
+    def class_var(variable_name)
+      instance_variable_get(variable_name)
+    end
+
     # @param variable_name [Symbol] class variable name (recommend :@_variable_name)
     # @param default_value [Object] default value of the class variable
     # @param merge_method [Symbol] method to merge values of the class variable
     # @return [Object] a class variable merged across ancestors until inherited_class_module
     def inherited_class_var(variable_name, default_value, merge_method)
       class_cache(variable_name) do
-        inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }
+        inherited_ancestors.map { |ancestor| ancestor.class_var(variable_name) }
           .compact
           .reduce(default_value, merge_method)
       end

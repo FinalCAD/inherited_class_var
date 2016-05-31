@@ -54,13 +54,23 @@ describe InheritedClassVar do
 
   context 'with deep_inherited_class_var set' do
     let(:variable_name) { :@inherited_class_var }
-    def inherited_class_var
-      ClassWithFamily.send(:inherited_class_var, variable_name, [], :+)
-    end
+    def inherited_class_var; ClassWithFamily.send(:inherited_class_var, variable_name, [], :+) end
 
     before do
       [Grandparent, Parent, Child, ClassWithFamily].each do |klass|
         klass.instance_variable_set(variable_name, [klass.to_s])
+      end
+    end
+
+    describe "::class_var" do
+      it "returns the class variable" do
+        [Parent, ClassWithFamily].each do |klass|
+          expect(klass.send(:class_var, variable_name)).to eql [klass.to_s]
+        end
+
+        [Grandparent, Child].each do |klass|
+          expect { klass.send(:class_var, variable_name) }.to raise_error(NoMethodError)
+        end
       end
     end
 
