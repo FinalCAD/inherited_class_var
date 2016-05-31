@@ -1,7 +1,6 @@
 Bundler.require(:default, :test)
 Coveralls.wear!
 
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'inherited_class_var'
 
 RSpec.configure do |c|
