@@ -60,69 +60,63 @@ describe InheritedClassVar do
   end
 
   describe '::inherited_ancestors' do
+    subject { child_class.send(:inherited_ancestors) }
+
     it 'returns the inherited ancestors' do
-      expect(child_class.send(:inherited_ancestors)).to eql [child_class, parent_class]
+      expect(subject).to eql [child_class, parent_class]
     end
   end
 
   context 'with deep_inherited_class_var set' do
     let(:variable_name) { :@inherited_class_var }
-    def inherited_class_var; child_class.send(:inherited_class_var, variable_name, [], :+) end
+    let(:args) { [variable_name, [], :+] }
+    def parent_inherited_class_var; parent_class.send(:inherited_class_var, *args) end
+    def child_inherited_class_var; child_class.send(:inherited_class_var, *args) end
 
     before do
       [grandparent_class, parent_class, Mod, child_class].each { |klass| klass.instance_variable_set(variable_name, [klass.name]) }
     end
 
     describe "::class_var" do
-      it "returns the class variable" do
-        [parent_class, child_class].each do |klass|
-          expect(klass.send(:class_var, variable_name, [])).to eql [klass.name]
-        end
+      subject { parent_class.send(:class_var, variable_name, []) }
 
-        [grandparent_class, Mod].each do |klass|
-          expect { klass.send(:class_var, variable_name, []) }.to raise_error(NoMethodError)
-        end
+      it "returns the class variable" do
+        expect(subject).to eql [parent_class.name]
       end
     end
 
     describe '::inherited_class_var' do
+      subject { child_inherited_class_var }
+
       it 'returns a class variable merged across ancestors until #{described_class}' do
-        expect(inherited_class_var).to eql %w[Child Parent]
+        expect(subject).to eql %w[Child Parent]
       end
 
       it 'caches the result' do
-        expect(inherited_class_var.object_id).to eql inherited_class_var.object_id
+        expect(subject.object_id).to eql child_inherited_class_var.object_id
       end
     end
 
     describe '::clear_class_cache' do
+      subject { child_class.clear_class_cache(variable_name) }
+
       it 'clears the cache' do
-        value = inherited_class_var
-        expect { child_class.clear_class_cache(variable_name) }.to change {
-          value.object_id == inherited_class_var.object_id
-        }.from(true).to(false)
+        value = child_inherited_class_var
+        expect { subject }.to change { value.object_id == child_class.send(:inherited_class_var, *args).object_id }.from(true).to(false)
       end
     end
 
     describe '::deep_clear_class_cache' do
       subject { parent_class.send(:deep_clear_class_cache, variable_name) }
 
-      def parent_inherited_class_var
-        parent_class.send(:inherited_class_var, variable_name, [], :+)
-      end
-
       it 'clears the cache of self class' do
         value = parent_inherited_class_var
-        expect { subject }.to change {
-          value.object_id == parent_inherited_class_var.object_id
-        }.from(true).to(false)
+        expect { subject }.to change { value.object_id == parent_inherited_class_var.object_id  }.from(true).to(false)
       end
 
       it 'clears the cache of child class' do
-        value = inherited_class_var
-        expect { subject }.to change {
-          value.object_id == inherited_class_var.object_id
-        }.from(true).to(false)
+        value = child_inherited_class_var
+        expect { subject }.to change { value.object_id == child_inherited_class_var.object_id }.from(true).to(false)
       end
     end
   end
