@@ -102,7 +102,7 @@ describe InheritedClassVar do
 
       it 'clears the cache' do
         value = child_inherited_class_var
-        expect { subject }.to change { value.object_id == child_class.send(:inherited_class_var, *args).object_id }.from(true).to(false)
+        expect { subject }.to change { value.object_id == child_inherited_class_var.object_id }.from(true).to(false)
       end
     end
 
