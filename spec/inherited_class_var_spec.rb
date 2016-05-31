@@ -23,6 +23,13 @@ describe InheritedClassVar do
       end
     end
 
+    describe "raw getter" do
+      it 'calls inherited_class_var' do
+        expect(Parent).to receive(:class_var).with(:@_inherited_hash, {}).and_call_original
+        Parent.raw_inherited_hash
+      end
+    end
+
     describe 'merger' do
       it 'continuously merges the new variable value' do
         expect(Parent.inherited_hash).to eql({})
@@ -32,7 +39,12 @@ describe InheritedClassVar do
 
         Parent.merge_inherited_hash(test2: 'test2')
         expect(Parent.inherited_hash).to eql(test1: 'test1', test2: 'test2')
+
         expect(Parent.inherited_hash.object_id).to eql Parent.inherited_hash.object_id
+        expect(ClassWithFamily.inherited_hash).to eql(test1: 'test1', test2: 'test2')
+
+        expect(Parent.raw_inherited_hash).to eql(test1: 'test1', test2: 'test2')
+        expect(ClassWithFamily.raw_inherited_hash).to eql({})
       end
     end
   end
@@ -65,11 +77,11 @@ describe InheritedClassVar do
     describe "::class_var" do
       it "returns the class variable" do
         [Parent, ClassWithFamily].each do |klass|
-          expect(klass.send(:class_var, variable_name)).to eql [klass.to_s]
+          expect(klass.send(:class_var, variable_name, [])).to eql [klass.to_s]
         end
 
         [Grandparent, Child].each do |klass|
-          expect { klass.send(:class_var, variable_name) }.to raise_error(NoMethodError)
+          expect { klass.send(:class_var, variable_name, []) }.to raise_error(NoMethodError)
         end
       end
     end
