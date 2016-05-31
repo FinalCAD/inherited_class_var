@@ -1,13 +1,15 @@
 require 'spec_helper'
 
-module Mod; end
+module Mod1; end
+module Mod2; end
 
 describe InheritedClassVar do
   let(:grandparent_class) { Class.new { def self.name; "grandparent_class" end } }
   let(:parent_class) do
     Class.new(grandparent_class) do
-      include Mod
+      include Mod1
       include InheritedClassVar
+      include Mod2
 
       inherited_class_hash :inherited_hash
 
@@ -74,7 +76,7 @@ describe InheritedClassVar do
     subject { child_class.send(:inherited_ancestors) }
 
     it 'returns the inherited ancestors' do
-      expect(subject).to eql [child_class, parent_class]
+      expect(subject).to eql [child_class, parent_class, Mod2]
     end
   end
 
@@ -85,7 +87,7 @@ describe InheritedClassVar do
     def child_inherited_class_var; child_class.send(:inherited_class_var, *args) end
 
     before do
-      [grandparent_class, parent_class, Mod, child_class].each { |klass| klass.instance_variable_set(variable_name, [klass.name]) }
+      [grandparent_class, parent_class, Mod1, child_class].each { |klass| klass.instance_variable_set(variable_name, [klass.name]) }
     end
 
     describe "::class_var" do

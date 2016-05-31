@@ -80,7 +80,9 @@ module InheritedClassVar
     # @return [Object] a class variable merged across ancestors until inherited_class_module
     def inherited_class_var(variable_name, default_value, merge_method)
       class_cache(variable_name) do
-        inherited_ancestors.map { |ancestor| ancestor.class_var(variable_name, default_value) }.reduce(default_value, merge_method)
+        inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }
+          .compact
+          .reduce(default_value, merge_method)
       end
     end
 
