@@ -19,7 +19,7 @@ describe InheritedClassVar do
   describe '::inherited_class_hash' do
     describe 'getter' do
       it 'calls inherited_class_var' do
-        expect(parent_class).to receive(:inherited_class_var).with(:@_inherited_hash, {}, :merge)
+        expect(parent_class).to receive(:inherited_class_var).with(:@_inherited_hash, {}, :deep_merge)
         parent_class.inherited_hash
       end
     end
@@ -45,6 +45,17 @@ describe InheritedClassVar do
 
         expect(parent_class.raw_inherited_hash).to eql(test1: 'test1', test2: 'test2')
         expect(child_class.raw_inherited_hash).to eql({})
+      end
+
+      it "does a deep merge" do
+        parent_class.merge_inherited_hash(a: { a1: 'a1'})
+        child_class.merge_inherited_hash(a: { a2: 'a2'})
+
+        expect(parent_class.inherited_hash).to eql(a: { a1: 'a1'})
+        expect(child_class.inherited_hash).to eql(a: { a1: 'a1', a2: 'a2'})
+
+        expect(parent_class.raw_inherited_hash).to eql(a: { a1: 'a1'})
+        expect(child_class.raw_inherited_hash).to eql(a: { a2: 'a2'})
       end
     end
   end

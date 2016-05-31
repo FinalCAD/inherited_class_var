@@ -21,7 +21,7 @@ module InheritedClassVar
       hidden_variable_name = hidden_variable_name(variable_name)
 
       define_singleton_method variable_name do
-        inherited_class_var(hidden_variable_name, {}, :merge)
+        inherited_class_var(hidden_variable_name, {}, :deep_merge)
       end
 
       define_singleton_method :"raw_#{variable_name}" do
