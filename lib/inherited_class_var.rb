@@ -21,13 +21,16 @@ module InheritedClassVar
       hidden_variable_name = hidden_variable_name(variable_name)
 
       define_singleton_method variable_name do
-        inherited_class_var(hidden_variable_name, {}, :merge)
+        inherited_class_var(hidden_variable_name, {}, :deep_merge)
+      end
+
+      define_singleton_method :"raw_#{variable_name}" do
+        class_var(hidden_variable_name, {})
       end
 
       define_singleton_method :"merge_#{variable_name}" do |merge_value|
-        value = instance_variable_get(hidden_variable_name) || instance_variable_set(hidden_variable_name, {})
         deep_clear_class_cache(hidden_variable_name)
-        value.merge!(merge_value)
+        public_send(:"raw_#{variable_name}").deep_merge!(merge_value)
       end
     end
 
@@ -62,6 +65,13 @@ module InheritedClassVar
     # @return [Symbol] the hidden variable name for class variable
     def hidden_variable_name(variable_name)
       :"@_#{variable_name}"
+    end
+
+    # @param variable_name [Symbol] class variable name
+    # @param default_value [Object] default value of the class variable
+    # @return [Object] a class variable of the specific class without taking into account inheritance
+    def class_var(variable_name, default_value)
+      instance_variable_get(variable_name) || instance_variable_set(variable_name, default_value)
     end
 
     # @param variable_name [Symbol] class variable name (recommend :@_variable_name)
