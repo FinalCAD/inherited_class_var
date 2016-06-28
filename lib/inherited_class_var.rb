@@ -21,7 +21,9 @@ module InheritedClassVar
       hidden_variable_name = hidden_variable_name(variable_name)
 
       define_singleton_method variable_name do
-        inherited_class_var(hidden_variable_name, {}, :deep_merge)
+        inherited_class_var(hidden_variable_name, {}) do |hash, to_merge|
+          hash.deep_merge!(to_merge) {|key,left,right| left } # a reverse_deep_merge! implementation, this will keep the parent's key order
+        end
       end
 
       define_singleton_method :"raw_#{variable_name}" do
@@ -75,14 +77,13 @@ module InheritedClassVar
     end
 
     # @param variable_name [Symbol] class variable name (recommend :@_variable_name)
-    # @param default_value [Object] default value of the class variable
-    # @param merge_method [Symbol] method to merge values of the class variable
     # @return [Object] a class variable merged across ancestors until inherited_class_module
-    def inherited_class_var(variable_name, default_value, merge_method)
+    def inherited_class_var(variable_name, *reduce_args, &block)
       class_cache(variable_name) do
         inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }
           .compact
-          .reduce(default_value, merge_method)
+          .reverse
+          .reduce(*reduce_args, &block)
       end
     end
 
