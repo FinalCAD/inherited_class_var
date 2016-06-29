@@ -21,7 +21,7 @@ describe InheritedClassVar do
   describe '::inherited_class_hash' do
     describe 'getter' do
       it 'calls inherited_class_var' do
-        expect(parent_class).to receive(:inherited_class_var).with(:@_inherited_hash, {}, :deep_merge)
+        expect(parent_class).to receive(:inherited_class_var).with(:@_inherited_hash, {})
         parent_class.inherited_hash
       end
     end
@@ -49,24 +49,44 @@ describe InheritedClassVar do
         expect(child_class.raw_inherited_hash).to eql({})
       end
 
-      it "does a deep merge between children" do
-        parent_class.merge_inherited_hash(a: { a1: 'a1'})
-        child_class.merge_inherited_hash(a: { a2: 'a2'})
+      it "the order of the parent's keys takes priority" do
+        parent_class.merge_inherited_hash(a: 1, b: 2, c: 3)
+        parent_class.merge_inherited_hash(b: 10, d: 4)
 
-        expect(parent_class.inherited_hash).to eql(a: { a1: 'a1'})
-        expect(child_class.inherited_hash).to eql(a: { a1: 'a1', a2: 'a2'})
-
-        expect(parent_class.raw_inherited_hash).to eql(a: { a1: 'a1'})
-        expect(child_class.raw_inherited_hash).to eql(a: { a2: 'a2'})
+        expect(parent_class.inherited_hash.keys).to eql %i[a b c d]
+        expect(parent_class.raw_inherited_hash.keys).to eql %i[a b c d]
       end
 
-
-      it "does a deep merge with itself" do
+      it "does a deep merge" do
         parent_class.merge_inherited_hash(a: { a1: 'a1'})
         parent_class.merge_inherited_hash(a: { a2: 'a2'})
 
         expect(parent_class.inherited_hash).to eql(a: { a1: 'a1', a2: 'a2'})
         expect(parent_class.raw_inherited_hash).to eql(a: { a1: 'a1', a2: 'a2'})
+      end
+
+      context "between children" do
+        it "the order of the parent's keys takes priority" do
+          parent_class.merge_inherited_hash(a: 1, b: 2, c: 3)
+          child_class.merge_inherited_hash(b: 10, d: 4)
+
+          expect(parent_class.inherited_hash.keys).to eql %i[a b c]
+          expect(parent_class.raw_inherited_hash.keys).to eql %i[a b c]
+
+          expect(child_class.inherited_hash.keys).to eql %i[a b c d]
+          expect(child_class.raw_inherited_hash.keys).to eql %i[b d]
+        end
+
+        it "does a deep merge" do
+          parent_class.merge_inherited_hash(a: { a1: 'a1'})
+          child_class.merge_inherited_hash(a: { a2: 'a2'})
+
+          expect(parent_class.inherited_hash).to eql(a: { a1: 'a1'})
+          expect(child_class.inherited_hash).to eql(a: { a1: 'a1', a2: 'a2'})
+
+          expect(parent_class.raw_inherited_hash).to eql(a: { a1: 'a1'})
+          expect(child_class.raw_inherited_hash).to eql(a: { a2: 'a2'})
+        end
       end
     end
   end
@@ -110,12 +130,19 @@ describe InheritedClassVar do
     describe '::inherited_class_var' do
       subject { child_inherited_class_var }
 
-      it 'returns a class variable merged across ancestors until #{described_class}' do
-        expect(subject).to eql %w[Child Parent]
+      it "returns a class variable merged across ancestors until #{described_class}" do
+        expect(subject).to eql %w[Parent Child]
       end
 
       it 'caches the result' do
         expect(subject.object_id).to eql child_inherited_class_var.object_id
+      end
+
+      context "with a block" do
+        subject { child_class.send(:inherited_class_var, variable_name, []) { |array, to_merge| array + to_merge } }
+        it "returns a class variable merged across ancestors until #{described_class}" do
+          expect(subject).to eql %w[Parent Child]
+        end
       end
     end
 
