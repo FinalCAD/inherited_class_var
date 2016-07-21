@@ -2,6 +2,8 @@ require 'active_support/all'
 
 require 'inherited_class_var/version'
 require 'inherited_class_var/cache'
+require 'inherited_class_var/variable'
+require 'inherited_class_var/hash'
 
 module InheritedClassVar
   extend ActiveSupport::Concern
@@ -18,22 +20,7 @@ module InheritedClassVar
     # @param variable_name [Symbol] class variable name
     # @option options [Array] :dependencies array of dependent method names
     def inherited_class_hash(variable_name)
-      hidden_variable_name = hidden_variable_name(variable_name)
-
-      define_singleton_method variable_name do
-        inherited_class_var(hidden_variable_name, {}) do |hash, to_merge|
-          hash.deep_merge!(to_merge) {|key,left,right| left } # a reverse_deep_merge! implementation, this will keep the parent's key order
-        end
-      end
-
-      define_singleton_method :"raw_#{variable_name}" do
-        class_var(hidden_variable_name, {})
-      end
-
-      define_singleton_method :"merge_#{variable_name}" do |merge_value|
-        deep_clear_class_cache(hidden_variable_name)
-        public_send(:"raw_#{variable_name}").deep_merge!(merge_value)
-      end
+      define_class_var(variable_name, InheritedClassVar::Hash)
     end
 
     # @param accessor_method_name [Symbol] method to access the inherited_custom_class
@@ -65,8 +52,17 @@ module InheritedClassVar
 
     # @param variable_name [Symbol] class variable name based on
     # @return [Symbol] the hidden variable name for class variable
-    def hidden_variable_name(variable_name)
-      :"@_#{variable_name}"
+    def hidden_variable_name(name)
+      :"@_#{name}_inherited_class_var"
+    end
+
+    def define_class_var(variable_name, variable_class)
+      hidden_variable_name = hidden_variable_name(variable_name)
+      define_singleton_method Variable.object_method_name(variable_name) do
+        instance_variable_get(hidden_variable_name) || instance_variable_set(hidden_variable_name, variable_class.new(variable_name, self))
+      end
+
+      public_send(Variable.object_method_name(variable_name)).define_methods
     end
 
     # @param variable_name [Symbol] class variable name
@@ -91,6 +87,7 @@ module InheritedClassVar
     # More Helpers
     #
 
+    public
     # @param included_module [Module] module to search for
     # @return [Array<Module>] inherited_ancestors of included_module (including self)
     def inherited_ancestors(included_module=InheritedClassVar)
