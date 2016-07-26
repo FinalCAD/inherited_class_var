@@ -6,10 +6,8 @@ module InheritedClassVar
       {}
     end
 
-    class << self
-      def change(hash1, hash2)
-        hash1.deep_merge!(hash2)
-      end
+    def _change(hash1, hash2)
+      hash1.deep_merge!(hash2)
     end
   end
 end

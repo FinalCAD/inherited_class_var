@@ -6,7 +6,7 @@ describe InheritedClassVar do
   describe "::inherited_class_hash" do
     subject { klass.send(:inherited_class_hash, :attributes) }
     it "calls ::inherited_class_var" do
-      expect(klass).to receive(:inherited_class_var).with(InheritedClassVar::Hash, :attributes)
+      expect(klass).to receive(:inherited_class_var).with(InheritedClassVar::Hash, :attributes, {})
       subject
     end
   end
@@ -14,7 +14,7 @@ describe InheritedClassVar do
   describe "::inherited_class_var" do
     subject { klass.send(:inherited_class_var, InheritedClassVar::Variable, :attributes) }
     it "calls ::inherited_class_var" do
-      expect(InheritedClassVar::Variable).to receive(:define_methods).with(klass, :attributes)
+      expect(InheritedClassVar::Variable).to receive(:define_methods).with(klass, :attributes, {})
       subject
     end
   end

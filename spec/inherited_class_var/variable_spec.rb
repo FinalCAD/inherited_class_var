@@ -6,7 +6,7 @@ describe InheritedClassVar::Variable do
     Class.new(described_class) do
       def default_value; [] end
       def raw_value; klass.name end
-      def self.change(array, class_name); array << class_name end
+      def _change(array, class_name); array << class_name end
     end
   end
 
@@ -60,7 +60,7 @@ describe InheritedClassVar::Variable do
       subject { instance.change("other_value") }
       it "calls notify_change" do
         expect(instance).to receive(:notify_change)
-        expect(attribute_class).to receive(:change).with("Parent", "other_value")
+        expect(instance).to receive(:_change).with("Parent", "other_value")
         subject
       end
     end
@@ -86,6 +86,22 @@ describe InheritedClassVar::Variable do
         expect(instance.instance_variable_get(:@value)).to_not eql nil
       end
     end
+
+    describe "#_change" do
+      subject { instance._change(nil, nil) }
+      let(:attribute_class) { described_class }
+      it "raises error" do
+        expect { subject }.to raise_error(NotImplementedError)
+      end
+    end
+
+    describe "#reduce" do
+      subject { instance.reduce("a", "b") }
+      it "calls ::change with the same args" do
+        expect(instance).to receive(:_change).with("a", "b")
+        subject
+      end
+    end
   end
 
   describe "class" do
@@ -106,22 +122,6 @@ describe InheritedClassVar::Variable do
           expect(klass.attributes_object.public_send(method)).to eql attribute.public_send(method)
         end
         expect(klass.attributes).to eql attribute.value
-      end
-    end
-
-    describe "::change" do
-      subject { attribute_class.change(nil, nil) }
-      let(:attribute_class) { described_class }
-      it "raises error" do
-        expect { subject }.to raise_error(NotImplementedError)
-      end
-    end
-
-    describe "::reduce" do
-      subject { attribute_class.reduce("a", "b") }
-      it "calls ::change with the same args" do
-        expect(attribute_class).to receive(:change).with("a", "b")
-        subject
       end
     end
   end
