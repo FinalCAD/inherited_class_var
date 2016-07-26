@@ -13,14 +13,14 @@ module InheritedClassVar
     # @param variable_name [Symbol] class variable name
     # @param options [Hash] see InheritedClassVar::Hash
     def inherited_class_hash(variable_name, options={})
-      inherited_class_var InheritedClassVar::Hash, variable_name, options
+      inherited_class_var variable_name, InheritedClassVar::Hash, options
     end
 
-    # @param variable_class [Class] a InheritedClassVar::Variable class
     # @param variable_name [Symbol] class variable name
+    # @param variable_class [Class] a InheritedClassVar::Variable class
     # @param options [Hash] see the variable_class
-    def inherited_class_var(variable_class, variable_name, options={})
-      variable_class.define_methods(self, variable_name, options)
+    def inherited_class_var(variable_name, variable_class, options={})
+      variable_class.define_methods(variable_name, self, options)
     end
 
     # @param accessor_method_name [Symbol] method to access the inherited_custom_class

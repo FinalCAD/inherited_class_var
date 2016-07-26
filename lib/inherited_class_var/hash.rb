@@ -7,7 +7,9 @@ module InheritedClassVar
     end
 
     def _change(hash1, hash2)
-      hash1.deep_merge!(hash2)
+      method = options[:shallow] ? :merge! : :deep_merge!
+      block = options[:reverse] ? Proc.new {|key,left,right| left }  : Proc.new {|key,left,right| right }
+      hash1.public_send(method, hash2, &block)
     end
   end
 end
