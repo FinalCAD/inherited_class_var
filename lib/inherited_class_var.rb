@@ -1,26 +1,23 @@
 require 'active_support/all'
 
 require 'inherited_class_var/version'
-require 'inherited_class_var/cache'
 require 'inherited_class_var/variable'
 require 'inherited_class_var/hash'
 
 module InheritedClassVar
   extend ActiveSupport::Concern
 
-  include Cache
-
   class_methods do
     protected
-
-    #
-    # Easy Open API
-    #
 
     # @param variable_name [Symbol] class variable name
     # @option options [Array] :dependencies array of dependent method names
     def inherited_class_hash(variable_name)
-      define_class_var(variable_name, InheritedClassVar::Hash)
+      inherited_class_var InheritedClassVar::Hash, variable_name
+    end
+
+    def inherited_class_var(variable_class, variable_name)
+      variable_class.define_methods(self, variable_name)
     end
 
     # @param accessor_method_name [Symbol] method to access the inherited_custom_class
@@ -41,51 +38,9 @@ module InheritedClassVar
       parent_class ||= base_parent_class
 
       klass = Class.new(parent_class)
-      # how else can i get the current scopes name...
       klass.send(:define_singleton_method, :name, &eval("-> { \"#{name}#{base_parent_class.name.demodulize}\" }"))
       klass
     end
-
-    #
-    # Helpers to make different types of inherited class variables
-    #
-
-    # @param variable_name [Symbol] class variable name based on
-    # @return [Symbol] the hidden variable name for class variable
-    def hidden_variable_name(name)
-      :"@_#{name}_inherited_class_var"
-    end
-
-    def define_class_var(variable_name, variable_class)
-      hidden_variable_name = hidden_variable_name(variable_name)
-      define_singleton_method Variable.object_method_name(variable_name) do
-        instance_variable_get(hidden_variable_name) || instance_variable_set(hidden_variable_name, variable_class.new(variable_name, self))
-      end
-
-      public_send(Variable.object_method_name(variable_name)).define_methods
-    end
-
-    # @param variable_name [Symbol] class variable name
-    # @param default_value [Object] default value of the class variable
-    # @return [Object] a class variable of the specific class without taking into account inheritance
-    def class_var(variable_name, default_value)
-      instance_variable_get(variable_name) || instance_variable_set(variable_name, default_value)
-    end
-
-    # @param variable_name [Symbol] class variable name (recommend :@_variable_name)
-    # @return [Object] a class variable merged across ancestors until inherited_class_module
-    def inherited_class_var(variable_name, *reduce_args, &block)
-      class_cache(variable_name) do
-        inherited_ancestors.map { |ancestor| ancestor.instance_variable_get(variable_name) }
-          .compact
-          .reverse
-          .reduce(*reduce_args, &block)
-      end
-    end
-
-    #
-    # More Helpers
-    #
 
     public
     # @param included_module [Module] module to search for
